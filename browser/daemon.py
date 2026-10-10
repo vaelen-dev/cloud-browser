@@ -2,11 +2,13 @@
 Continuous Cloud Browser Daemon
 Keeps the browser and all open tabs alive in memory.
 Listens on localhost:9000 for instant commands.
+Returns screenshot directly in JSON response.
 """
 
 import asyncio
 import json
 import os
+import base64
 import traceback
 from playwright.async_api import async_playwright
 
@@ -19,7 +21,7 @@ LATEST_SS = os.path.join(SS_DIR, "latest.png")
 state = {}
 
 async def handle_client(reader, writer):
-    data = await reader.read(4096)
+    data = await reader.read(8192)
     if not data:
         writer.close()
         return
@@ -78,22 +80,27 @@ async def handle_client(reader, writer):
             res["buttons"] = buttons[:10]
             res["inputs"] = inputs[:10]
 
-        # Always update screenshot
-        await page.screenshot(path=LATEST_SS)
+        # Capture and save screenshot
+        buf = await page.screenshot(type="png")
+        with open(LATEST_SS, "wb") as f:
+            f.write(buf)
+
         res["url"] = page.url
         res["title"] = await page.title()
-        res["screenshot"] = LATEST_SS
+        res["screenshot_b64"] = base64.b64encode(buf).decode()
 
     except Exception as e:
         res["status"] = "error"
         res["message"] = str(e)
         try:
-            await page.screenshot(path=LATEST_SS)
+            buf = await page.screenshot(type="png")
+            res["screenshot_b64"] = base64.b64encode(buf).decode()
         except Exception:
             pass
 
     out_bytes = json.dumps(res).encode()
-    writer.write(out_bytes)
+    # Send length prefix then payload
+    writer.write(len(out_bytes).to_bytes(4, "big") + out_bytes)
     await writer.drain()
     writer.close()
 
@@ -112,7 +119,7 @@ async def main():
         state["page"] = page
 
         server = await asyncio.start_server(handle_client, "127.0.0.1", 9000)
-        print("Daemon running on 127.0.0.1:9000")
+        print("Daemon ready on 127.0.0.1:9000")
         async with server:
             await server.serve_forever()
 
