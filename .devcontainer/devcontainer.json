@@ -7,16 +7,18 @@
   },
 
   "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "pip install -q fastapi uvicorn playwright && playwright install chromium > /dev/null 2>&1 && nohup python /workspaces/cloud-browser/browser/server.py > /tmp/browser-server.log 2>&1 &",
 
-  "forwardPorts": [6080, 9222],
+  "forwardPorts": [8080, 6080, 9222],
 
   "portsAttributes": {
+    "8080": {
+      "label": "Browser API Server",
+      "onAutoForward": "silent",
+      "visibility": "public"
+    },
     "6080": {
       "label": "noVNC Browser View",
-      "onAutoForward": "openBrowser"
-    },
-    "9222": {
-      "label": "Chrome DevTools",
       "onAutoForward": "silent"
     }
   },

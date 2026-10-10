@@ -34,7 +34,7 @@ sudo apt-get install -y -qq \
 
 # Python packages
 echo "🐍 Python packages install ho rahe hain..."
-pip install --quiet playwright asyncio
+pip install --quiet playwright asyncio fastapi uvicorn
 
 # Playwright browsers install
 echo "🌐 Playwright browser install ho raha hai..."
