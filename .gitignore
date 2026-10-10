@@ -1,0 +1,5 @@
+browser-data/
+screenshots/
+__pycache__/
+*.pyc
+.env
